@@ -2,6 +2,10 @@ from PIL import Image
 import requests
 from io import BytesIO
 
+import numpy as np
+import cv2
+
+
 def download_image(url):
     """
     Download an image from a given URL and return it as a PIL Image.
@@ -20,3 +24,41 @@ def download_image(url):
     except requests.exceptions.RequestException as e:
         print(f"Error downloading image: {e}")
         return None
+
+def image_preprocess(image):
+    """
+        Input:
+            image: RGB image, [Height, Width, Channels] as numpy array
+        Output:
+            input_tensor, (h_o, w_o)
+        input_tensor -> ready to feed the model
+        and original height and width of the given image
+    """
+    # save original shape
+    image_size = image.shape[:2]
+    # normalize [0, 1]
+    input_tensor = image / 255.0
+    # Resize to [518, 518]
+    input_tensor = cv2.resize(input_tensor, dsize=[518, 518], interpolation=cv2.INTER_CUBIC)
+
+    # mean and std
+    mean = [0.485, 0.456, 0.406]
+    std  = [0.229, 0.224, 0.225]
+    input_tensor = (input_tensor - mean) / std
+
+    # turn it channels first.
+    # (h, w, c) -> (c, h, w)
+    input_tensor = np.transpose(input_tensor, (2, 0, 1))
+
+    # add batch size
+    input_tensor = np.expand_dims(input_tensor, 0)
+
+    # force dtype to float32
+    input_tensor = input_tensor.astype("float32")
+    return input_tensor, image_size
+
+def postprocess(model_output, image_size):
+    depth = model_output[0]
+    h, w = image_size
+    depth = cv2.resize(depth, dsize=(w, h), interpolation=cv2.INTER_AREA)
+    return depth
