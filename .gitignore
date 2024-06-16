@@ -4,3 +4,7 @@ models_ov
 weights
 test_images
 __pycache__
+
+# exteions
+*.mp4
+*.avi

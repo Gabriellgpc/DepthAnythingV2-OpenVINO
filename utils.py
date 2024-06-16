@@ -61,4 +61,27 @@ def postprocess(model_output, image_size):
     depth = model_output[0]
     h, w = image_size
     depth = cv2.resize(depth, dsize=(w, h), interpolation=cv2.INTER_AREA)
+
+    depth = cv2.normalize(depth, None, 0, 255, cv2.NORM_MINMAX).astype("uint8")
+    depth = cv2.applyColorMap(depth, colormap=cv2.COLORMAP_INFERNO)
     return depth
+
+def download_video(url, save_path):
+    """
+    Download a video from the given URL and save it to the local disk.
+
+    Parameters:
+    url (str): The URL of the video to download.
+    save_path (str): The local file path to save the downloaded video.
+    """
+    try:
+        response = requests.get(url, stream=True)
+        response.raise_for_status()  # Check if the request was successful
+
+        with open(save_path, 'wb') as file:
+            for chunk in response.iter_content(chunk_size=8192):
+                file.write(chunk)
+
+        print(f"Video downloaded successfully and saved to {save_path}")
+    except requests.exceptions.RequestException as e:
+        print(f"Error downloading video: {e}")
